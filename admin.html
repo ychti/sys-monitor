@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin — Aus Surveillance</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Share+Tech+Mono&display=swap');
+  :root{--bg:#0a0f16;--panel:#111820;--panel2:#171f2a;--border:#1e2d3d;--accent:#00c2ff;--text:#e8f0f8;--muted:#6b8299;--green:#00d084;--red:#ff4757;--yellow:#ffa502;--purple:#a855f7;}
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+
+  /* LOGIN */
+  #login-screen{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center;padding:24px;}
+  #login-screen.gone{display:none;}
+  .login-box{width:100%;max-width:360px;background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:32px;}
+  .login-logo{font-family:'Share Tech Mono',monospace;font-size:1.1rem;color:var(--accent);margin-bottom:4px;letter-spacing:2px;}
+  .login-sub{font-size:.8rem;color:var(--muted);margin-bottom:28px;}
+  .login-input{width:100%;padding:12px 14px;background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:'Inter',sans-serif;font-size:.9rem;border-radius:10px;outline:none;margin-bottom:12px;transition:border-color .2s;}
+  .login-input:focus{border-color:var(--accent);}
+  .login-btn{width:100%;padding:13px;background:var(--accent);color:#fff;font-family:'Inter',sans-serif;font-size:.9rem;font-weight:600;border:none;border-radius:10px;cursor:pointer;}
+  .login-err{font-size:.75rem;color:var(--red);min-height:14px;margin-bottom:8px;text-align:center;}
+
+  /* APP */
+  #app{display:none;}
+  #app.visible{display:block;}
+
+  header{background:var(--panel);border-bottom:1px solid var(--border);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+  .hlogo{font-family:'Share Tech Mono',monospace;font-size:1rem;color:var(--accent);letter-spacing:2px;}
+  .hlogo span{color:var(--muted);}
+  .htabs{display:flex;gap:4px;}
+  .htab{padding:7px 14px;background:transparent;border:1px solid var(--border);color:var(--muted);font-family:'Inter',sans-serif;font-size:.78rem;font-weight:500;cursor:pointer;border-radius:8px;transition:all .15s;}
+  .htab.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+  .hsignout{padding:7px 14px;background:transparent;border:1px solid var(--border);color:var(--muted);font-family:'Inter',sans-serif;font-size:.78rem;cursor:pointer;border-radius:8px;}
+
+  .container{max-width:1200px;margin:0 auto;padding:24px;}
+
+  /* STATS CARDS */
+  .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:28px;}
+  .stat-card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px;}
+  .stat-card .val{font-size:1.8rem;font-weight:700;margin-bottom:2px;}
+  .stat-card .lbl{font-size:.72rem;color:var(--muted);font-weight:500;letter-spacing:.3px;}
+  .stat-card.c-blue .val{color:var(--accent);}
+  .stat-card.c-green .val{color:var(--green);}
+  .stat-card.c-yellow .val{color:var(--yellow);}
+  .stat-card.c-red .val{color:var(--red);}
+  .stat-card.c-purple .val{color:var(--purple);}
+
+  /* TABS CONTENT */
+  .tab-content{display:none;}
+  .tab-content.active{display:block;}
+
+  /* SECTION */
+  .section{background:var(--panel);border:1px solid var(--border);border-radius:12px;margin-bottom:20px;overflow:hidden;}
+  .section-header{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+  .section-title{font-size:.88rem;font-weight:600;}
+  .section-count{font-size:.75rem;color:var(--muted);background:var(--panel2);padding:2px 8px;border-radius:20px;}
+
+  /* TABLE */
+  .table{width:100%;border-collapse:collapse;}
+  .table th{padding:10px 14px;text-align:left;font-size:.7rem;font-weight:600;color:var(--muted);border-bottom:1px solid var(--border);letter-spacing:.5px;text-transform:uppercase;}
+  .table td{padding:11px 14px;font-size:.78rem;border-bottom:1px solid var(--border);vertical-align:middle;}
+  .table tr:last-child td{border-bottom:none;}
+  .table tr:hover td{background:rgba(255,255,255,0.02);}
+
+  /* BADGES */
+  .badge{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:20px;font-size:.65rem;font-weight:600;}
+  .badge.cctv{background:rgba(0,194,255,0.15);color:#00c2ff;}
+  .badge.police{background:rgba(68,136,255,0.15);color:#4488ff;}
+  .badge.speed{background:rgba(255,107,53,0.15);color:#ff6b35;}
+  .badge.alpr{background:rgba(168,85,247,0.15);color:#a855f7;}
+  .badge.drone{background:rgba(0,208,132,0.15);color:#00d084;}
+  .badge.other{background:rgba(255,165,2,0.15);color:#ffa502;}
+  .badge.verified{background:rgba(0,208,132,0.15);color:#00d084;}
+  .badge.unverified{background:rgba(255,165,2,0.15);color:#ffa502;}
+  .badge.flagged{background:rgba(255,71,87,0.15);color:#ff4757;}
+  .badge.banned{background:rgba(255,71,87,0.15);color:#ff4757;}
+  .badge.active{background:rgba(0,208,132,0.15);color:#00d084;}
+
+  /* ACTIONS */
+  .action-btn{padding:5px 10px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:'Inter',sans-serif;font-size:.7rem;font-weight:500;cursor:pointer;border-radius:7px;transition:all .15s;margin-left:4px;}
+  .action-btn:hover{border-color:var(--muted);color:var(--text);}
+  .action-btn.del{border-color:rgba(255,71,87,0.3);color:var(--red);}
+  .action-btn.del:hover{background:rgba(255,71,87,0.1);}
+  .action-btn.ban{border-color:rgba(255,165,2,0.3);color:var(--yellow);}
+  .action-btn.ban:hover{background:rgba(255,165,2,0.1);}
+  .action-btn.unban{border-color:rgba(0,208,132,0.3);color:var(--green);}
+  .action-btn.unban:hover{background:rgba(0,208,132,0.1);}
+  .action-btn.view{border-color:rgba(0,194,255,0.3);color:var(--accent);}
+  .action-btn.view:hover{background:rgba(0,194,255,0.08);}
+
+  /* SEARCH */
+  .table-search{width:100%;padding:9px 14px;background:var(--panel2);border:1px solid var(--border);color:var(--text);font-family:'Inter',sans-serif;font-size:.82rem;border-radius:9px;outline:none;margin-bottom:14px;}
+  .table-search:focus{border-color:var(--accent);}
+  .table-search::placeholder{color:var(--muted);}
+
+  /* EMPTY */
+  .empty{padding:40px;text-align:center;color:var(--muted);font-size:.82rem;}
+
+  /* LOADING */
+  .loading{padding:30px;text-align:center;color:var(--muted);font-size:.78rem;letter-spacing:1px;}
+
+  /* TOAST */
+  #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--panel);border:1px solid var(--border);color:var(--text);font-size:.78rem;padding:8px 18px;border-radius:20px;z-index:5000;opacity:0;transition:opacity .3s;pointer-events:none;box-shadow:0 4px 16px rgba(0,0,0,.5);}
+  #toast.show{opacity:1;}
+
+  /* NOTES PREVIEW */
+  .notes-preview{max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-size:.72rem;}
+
+  /* USER AVATAR */
+  .u-avatar{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#0066aa);display:inline-flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;color:#fff;margin-right:8px;vertical-align:middle;}
+
+  @media(max-width:768px){
+    .htabs{display:none;}
+    .container{padding:14px;}
+    .table th:nth-child(n+4),.table td:nth-child(n+4){display:none;}
+  }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">AUS<span style="color:var(--muted)">//</span>SURVEILLANCE</div>
+    <div class="login-sub">Admin Panel — Restricted Access</div>
+    <input class="login-input" id="admin-pass" type="password" placeholder="Admin password" autocomplete="off">
+    <div class="login-err" id="admin-err"></div>
+    <button class="login-btn" onclick="adminLogin()">ACCESS PANEL</button>
+  </div>
+</div>
+
+<!-- ADMIN APP -->
+<div id="app">
+  <header>
+    <div class="hlogo">AUS<span>//</span>ADMIN</div>
+    <div class="htabs">
+      <button class="htab active" onclick="switchTab('overview',this)">Overview</button>
+      <button class="htab" onclick="switchTab('markers',this)">Markers</button>
+      <button class="htab" onclick="switchTab('flagged',this)">Flagged</button>
+      <button class="htab" onclick="switchTab('users',this)">Users</button>
+    </div>
+    <button class="hsignout" onclick="adminLogout()">Sign Out</button>
+  </header>
+
+  <div class="container">
+
+    <!-- OVERVIEW TAB -->
+    <div class="tab-content active" id="tab-overview">
+      <div class="stats-grid">
+        <div class="stat-card c-blue"><div class="val" id="s-total">—</div><div class="lbl">TOTAL MARKERS</div></div>
+        <div class="stat-card c-green"><div class="val" id="s-verified">—</div><div class="lbl">VERIFIED (3+ VOTES)</div></div>
+        <div class="stat-card c-yellow"><div class="val" id="s-unverified">—</div><div class="lbl">UNVERIFIED</div></div>
+        <div class="stat-card c-red"><div class="val" id="s-flagged">—</div><div class="lbl">FLAGGED</div></div>
+        <div class="stat-card c-purple"><div class="val" id="s-users">—</div><div class="lbl">TOTAL USERS</div></div>
+        <div class="stat-card c-blue"><div class="val" id="s-banned">—</div><div class="lbl">BANNED USERS</div></div>
+      </div>
+
+      <div class="section">
+        <div class="section-header"><div class="section-title">Recent Submissions</div></div>
+        <div id="recent-list"><div class="loading">LOADING...</div></div>
+      </div>
+    </div>
+
+    <!-- MARKERS TAB -->
+    <div class="tab-content" id="tab-markers">
+      <input class="table-search" id="marker-search" placeholder="Search markers by type, location, user..." oninput="filterMarkers()">
+      <div class="section">
+        <div class="section-header">
+          <div class="section-title">All Markers</div>
+          <div class="section-count" id="marker-count">0</div>
+        </div>
+        <div style="overflow-x:auto;">
+          <table class="table">
+            <thead><tr>
+              <th>Type</th><th>Location</th><th>Submitted By</th><th>Votes</th><th>Status</th><th>Notes</th><th>Actions</th>
+            </tr></thead>
+            <tbody id="markers-tbody"><tr><td colspan="7"><div class="loading">LOADING...</div></td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- FLAGGED TAB -->
+    <div class="tab-content" id="tab-flagged">
+      <div class="section">
+        <div class="section-header">
+          <div class="section-title">Flagged Markers</div>
+          <div class="section-count" id="flagged-count">0</div>
+        </div>
+        <div style="overflow-x:auto;">
+          <table class="table">
+            <thead><tr>
+              <th>Type</th><th>Location</th><th>Submitted By</th><th>Flags</th><th>Reason</th><th>Actions</th>
+            </tr></thead>
+            <tbody id="flagged-tbody"><tr><td colspan="6"><div class="empty">No flagged markers yet.</div></td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- USERS TAB -->
+    <div class="tab-content" id="tab-users">
+      <input class="table-search" id="user-search" placeholder="Search users by name or email..." oninput="filterUsers()">
+      <div class="section">
+        <div class="section-header">
+          <div class="section-title">All Users</div>
+          <div class="section-count" id="user-count">0</div>
+        </div>
+        <div style="overflow-x:auto;">
+          <table class="table">
+            <thead><tr>
+              <th>User</th><th>Markers</th><th>Joined</th><th>Last Seen</th><th>Device</th><th>Status</th><th>Actions</th>
+            </tr></thead>
+            <tbody id="users-tbody"><tr><td colspan="7"><div class="loading">LOADING...</div></td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, collection, onSnapshot, deleteDoc, doc, updateDoc, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDNMA6SKABD7obW2c5-WiXXPiWsQg5kcKk",
+  authDomain: "aus-surveillance.firebaseapp.com",
+  projectId: "aus-surveillance",
+  storageBucket: "aus-surveillance.firebasestorage.app",
+  messagingSenderId: "324165563078",
+  appId: "1:324165563078:web:36f9ddae81f9a6e28b1dc7"
+};
+
+const fbApp = initializeApp(firebaseConfig);
+const db = getFirestore(fbApp);
+const auth = getAuth(fbApp);
+
+// ── ADMIN AUTH (separate from user auth) ──────────────────────────────────────
+const ADMIN_PASS = 'Ax9#mK2$vLp@Qr7!';
+
+window.adminLogin = async function(){
+  const val = document.getElementById('admin-pass').value;
+  const err = document.getElementById('admin-err');
+  if(val === ADMIN_PASS){
+    sessionStorage.setItem('admin_auth','1');
+    document.getElementById('login-screen').classList.add('gone');
+    document.getElementById('app').classList.add('visible');
+    loadAll();
+    err.textContent='';
+  } else {
+    err.textContent = 'Incorrect password.';
+    document.getElementById('admin-pass').value='';
+  }
+};
+
+document.getElementById('admin-pass').addEventListener('keydown',e=>{ if(e.key==='Enter') window.adminLogin(); });
+
+window.adminLogout = function(){
+  sessionStorage.removeItem('admin_auth');
+  location.reload();
+};
+
+if(sessionStorage.getItem('admin_auth')==='1'){
+  document.getElementById('login-screen').classList.add('gone');
+  document.getElementById('app').classList.add('visible');
+  loadAll();
+}
+
+// ── TAB SWITCHING ──────────────────────────────────────────────────────────────
+window.switchTab = function(tab, btn){
+  document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.htab').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+tab).classList.add('active');
+  btn.classList.add('active');
+};
+
+// ── DATA ──────────────────────────────────────────────────────────────────────
+let allMarkers=[], allUsers=[];
+
+const LABELS={cctv:'CCTV',police:'Police',speed:'Speed Cam',alpr:'ALPR',drone:'Drone',other:'Other'};
+const TYPE_ICONS={cctv:'📷',police:'🚔',speed:'🚗',alpr:'🔢',drone:'🚁',other:'📡'};
+
+function timeAgo(str){
+  if(!str) return '—';
+  const s=Math.floor((Date.now()-new Date(str))/1000);
+  if(s<60) return 'just now';
+  if(s<3600) return `${Math.floor(s/60)}m ago`;
+  if(s<86400) return `${Math.floor(s/3600)}h ago`;
+  if(s<2592000) return `${Math.floor(s/86400)}d ago`;
+  return new Date(str).toLocaleDateString('en-AU');
+}
+
+function loadAll(){
+  // Live markers
+  onSnapshot(collection(db,'markers'), snap=>{
+    allMarkers=[];
+    snap.forEach(d=>allMarkers.push({id:d.id,...d.data()}));
+    allMarkers.sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+    renderStats();
+    renderMarkers();
+    renderFlagged();
+    renderRecent();
+  });
+
+  // Live users
+  onSnapshot(collection(db,'users'), snap=>{
+    allUsers=[];
+    snap.forEach(d=>allUsers.push({id:d.id,...d.data()}));
+    allUsers.sort((a,b)=>new Date(b.lastSeen||0)-new Date(a.lastSeen||0));
+    renderStats();
+    renderUsers();
+  });
+}
+
+function renderStats(){
+  const total=allMarkers.length;
+  const verified=allMarkers.filter(m=>(m.votes||0)>=3).length;
+  const unverified=total-verified;
+  const flagged=allMarkers.filter(m=>(m.flagCount||0)>0).length;
+  const banned=allUsers.filter(u=>u.banned).length;
+  document.getElementById('s-total').textContent=total;
+  document.getElementById('s-verified').textContent=verified;
+  document.getElementById('s-unverified').textContent=unverified;
+  document.getElementById('s-flagged').textContent=flagged;
+  document.getElementById('s-users').textContent=allUsers.length;
+  document.getElementById('s-banned').textContent=banned;
+}
+
+function renderRecent(){
+  const list=document.getElementById('recent-list');
+  const recent=allMarkers.slice(0,10);
+  if(!recent.length){list.innerHTML='<div class="empty">No markers yet.</div>';return;}
+  list.innerHTML=`<table class="table"><thead><tr><th>Type</th><th>Submitted By</th><th>Votes</th><th>When</th><th>Actions</th></tr></thead><tbody>${
+    recent.map(m=>`<tr>
+      <td><span class="badge ${m.type}">${TYPE_ICONS[m.type]||'📡'} ${LABELS[m.type]||m.type}</span></td>
+      <td>${m.userName||'Anonymous'}</td>
+      <td style="color:${(m.votes||0)>=3?'var(--green)':(m.votes||0)<0?'var(--red)':'var(--text)'}">${m.votes>0?'+':''}${m.votes||0}</td>
+      <td style="color:var(--muted)">${timeAgo(m.createdAt)}</td>
+      <td>
+        <button class="action-btn view" onclick="viewOnMap('${m.lat}','${m.lng}')">View</button>
+        <button class="action-btn del" onclick="deleteMarker('${m.id}')">Delete</button>
+      </td>
+    </tr>`).join('')
+  }</tbody></table>`;
+}
+
+let markerFilter='';
+window.filterMarkers=function(){ markerFilter=document.getElementById('marker-search').value.toLowerCase(); renderMarkers(); };
+
+function renderMarkers(){
+  const tbody=document.getElementById('markers-tbody');
+  let filtered=allMarkers;
+  if(markerFilter) filtered=allMarkers.filter(m=>(m.type||'').includes(markerFilter)||(m.userName||'').toLowerCase().includes(markerFilter)||(m.notes||'').toLowerCase().includes(markerFilter));
+  document.getElementById('marker-count').textContent=filtered.length;
+  if(!filtered.length){tbody.innerHTML=`<tr><td colspan="7"><div class="empty">No markers found.</div></td></tr>`;return;}
+  tbody.innerHTML=filtered.map(m=>`<tr>
+    <td><span class="badge ${m.type}">${TYPE_ICONS[m.type]||'📡'} ${LABELS[m.type]||m.type}</span></td>
+    <td style="font-family:'Share Tech Mono',monospace;font-size:.7rem;color:var(--muted)">${Number(m.lat).toFixed(4)}, ${Number(m.lng).toFixed(4)}</td>
+    <td><span class="u-avatar">${(m.userName||'?')[0].toUpperCase()}</span>${m.userName||'Anonymous'}</td>
+    <td style="color:${(m.votes||0)>=3?'var(--green)':(m.votes||0)<0?'var(--red)':'var(--text)'};font-weight:600">${m.votes>0?'+':''}${m.votes||0}</td>
+    <td><span class="badge ${(m.votes||0)>=3?'verified':'unverified'}">${(m.votes||0)>=3?'✓ Verified':'⏳ Unverified'}</span></td>
+    <td><div class="notes-preview">${m.notes||'—'}</div></td>
+    <td>
+      <button class="action-btn view" onclick="viewOnMap('${m.lat}','${m.lng}')">Map</button>
+      <button class="action-btn del" onclick="deleteMarker('${m.id}')">Delete</button>
+    </td>
+  </tr>`).join('');
+}
+
+function renderFlagged(){
+  const tbody=document.getElementById('flagged-tbody');
+  const flagged=allMarkers.filter(m=>(m.flagCount||0)>0);
+  document.getElementById('flagged-count').textContent=flagged.length;
+  if(!flagged.length){tbody.innerHTML=`<tr><td colspan="6"><div class="empty">No flagged markers. 🎉</div></td></tr>`;return;}
+  tbody.innerHTML=flagged.map(m=>`<tr>
+    <td><span class="badge ${m.type}">${TYPE_ICONS[m.type]||'📡'} ${LABELS[m.type]||m.type}</span></td>
+    <td style="font-family:'Share Tech Mono',monospace;font-size:.7rem;color:var(--muted)">${Number(m.lat).toFixed(4)}, ${Number(m.lng).toFixed(4)}</td>
+    <td>${m.userName||'Anonymous'}</td>
+    <td><span class="badge flagged">🚩 ${m.flagCount} flags</span></td>
+    <td style="color:var(--muted);font-size:.72rem">${m.flagReason||'No reason given'}</td>
+    <td>
+      <button class="action-btn view" onclick="viewOnMap('${m.lat}','${m.lng}')">Map</button>
+      <button class="action-btn del" onclick="deleteMarker('${m.id}')">Delete</button>
+      <button class="action-btn unban" onclick="clearFlag('${m.id}')">Clear Flag</button>
+    </td>
+  </tr>`).join('');
+}
+
+let userFilter='';
+window.filterUsers=function(){ userFilter=document.getElementById('user-search').value.toLowerCase(); renderUsers(); };
+
+function renderUsers(){
+  const tbody=document.getElementById('users-tbody');
+  let filtered=allUsers;
+  if(userFilter) filtered=allUsers.filter(u=>(u.displayName||'').toLowerCase().includes(userFilter)||(u.email||'').toLowerCase().includes(userFilter));
+  document.getElementById('user-count').textContent=filtered.length;
+  if(!filtered.length){tbody.innerHTML=`<tr><td colspan="7"><div class="empty">No users found.</div></td></tr>`;return;}
+  tbody.innerHTML=filtered.map(u=>{
+    const markerCount=allMarkers.filter(m=>m.userId===u.id).length;
+    return `<tr>
+      <td><span class="u-avatar">${(u.displayName||u.email||'?')[0].toUpperCase()}</span>${u.displayName||u.email||u.id.slice(0,12)}</td>
+      <td style="font-weight:600;color:var(--accent)">${markerCount}</td>
+      <td style="color:var(--muted)">${timeAgo(u.firstSeen||u.createdAt)}</td>
+      <td style="color:var(--muted)">${timeAgo(u.lastSeen)}</td>
+      <td style="color:var(--muted);font-size:.72rem">${u.device||'Unknown'}</td>
+      <td><span class="badge ${u.banned?'banned':'active'}">${u.banned?'🚫 Banned':'✓ Active'}</span></td>
+      <td>
+        ${u.banned
+          ? `<button class="action-btn unban" onclick="unbanUser('${u.id}')">Unban</button>`
+          : `<button class="action-btn ban" onclick="banUser('${u.id}','${u.displayName||'User'}')">Ban</button>`
+        }
+        <button class="action-btn del" onclick="deleteAllMarkers('${u.id}','${u.displayName||'User'}')">Del Markers</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// ── ACTIONS ───────────────────────────────────────────────────────────────────
+window.deleteMarker=async function(id){
+  if(!confirm('Delete this marker permanently?'))return;
+  try{ await deleteDoc(doc(db,'markers',id)); showToast('Marker deleted.'); }
+  catch(e){ showToast('Failed to delete.'); }
+};
+
+window.clearFlag=async function(id){
+  try{ await updateDoc(doc(db,'markers',id),{flagCount:0,flagReason:''}); showToast('Flag cleared.'); }
+  catch(e){ showToast('Failed.'); }
+};
+
+window.banUser=async function(uid, name){
+  if(!confirm(`Ban user "${name}"? Their markers will stay but they won't be able to submit new ones.`))return;
+  try{
+    await updateDoc(doc(db,'users',uid),{banned:true,bannedAt:new Date().toISOString()});
+    showToast(`${name} has been banned.`);
+  }catch(e){ showToast('Failed to ban user.'); }
+};
+
+window.unbanUser=async function(uid){
+  try{
+    await updateDoc(doc(db,'users',uid),{banned:false,bannedAt:null});
+    showToast('User unbanned.');
+  }catch(e){ showToast('Failed.'); }
+};
+
+window.deleteAllMarkers=async function(uid, name){
+  if(!confirm(`Delete ALL markers submitted by "${name}"? This cannot be undone.`))return;
+  const toDelete=allMarkers.filter(m=>m.userId===uid);
+  try{
+    await Promise.all(toDelete.map(m=>deleteDoc(doc(db,'markers',m.id))));
+    showToast(`Deleted ${toDelete.length} markers from ${name}.`);
+  }catch(e){ showToast('Failed to delete markers.'); }
+};
+
+window.viewOnMap=function(lat,lng){
+  window.open(`https://yhcti.github.io/aus-surveillance/#${lat},${lng}`,'_blank');
+};
+
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),3000);
+}
+</script>
+</body>
+</html>
